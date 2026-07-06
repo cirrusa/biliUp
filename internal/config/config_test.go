@@ -15,12 +15,7 @@ func TestLoadUsesDefaultsAndParsesSupportUPs(t *testing.T) {
     "supportUpIds": [123, 456]
   },
   "storage": {
-    "mode": "qinglong"
-  },
-  "qinglong": {
-    "url": "http://ql:5600",
-    "clientId": "id",
-    "clientSecret": "secret"
+    "accountsFile": "config/accounts.json"
   }
 }`)
 	if err := os.WriteFile(path, data, 0o600); err != nil {
@@ -44,22 +39,6 @@ func TestLoadUsesDefaultsAndParsesSupportUPs(t *testing.T) {
 	if got := cfg.Task.SupportUpIDs; len(got) != 2 || got[0] != 123 || got[1] != 456 {
 		t.Fatalf("supportUpIds = %#v", got)
 	}
-	if cfg.Storage.Mode != StorageQingLong {
-		t.Fatalf("storage mode = %q", cfg.Storage.Mode)
-	}
-}
-
-func TestLoadRejectsInvalidStorageMode(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "config.json")
-	if err := os.WriteFile(path, []byte(`{"storage":{"mode":"sqlite"}}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	_, err := Load(path)
-	if err == nil {
-		t.Fatal("expected invalid storage mode error")
-	}
 }
 
 func TestLoadAllowsJSONComments(t *testing.T) {
@@ -68,7 +47,6 @@ func TestLoadAllowsJSONComments(t *testing.T) {
 	data := []byte(`{
   // storage backend
   "storage": {
-    "mode": "json",
     "accountsFile": "config/accounts.json" // local account file
   },
   "task": {

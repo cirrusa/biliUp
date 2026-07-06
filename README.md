@@ -12,7 +12,6 @@
 - 分享视频
 - 投币
 - JSON 文件存储
-- 青龙环境变量存储和自动更新
 
 不包含原项目里的 Web UI、推送、漫画、直播、大会员、充电、取关等功能。
 
@@ -86,7 +85,6 @@ nano config/config.json
     "supportUpIds": []
   },
   "storage": {
-    "mode": "json",
     "accountsFile": "config/accounts.json"
   }
 }
@@ -102,7 +100,7 @@ nano config/config.json
 - `task.saveCoinsWhenLv6`：账号达到 Lv6 后是否跳过投币。
 - `task.selectLike`：投币时是否同时点赞。
 - `task.supportUpIds`：优先支持的 UP 主 UID；为空时使用热门/排行榜视频。
-- `storage.mode`：`json` 或 `qinglong`。
+- `storage.accountsFile`：账号 Cookie 保存文件。
 
 配置文件支持 `//` 和 `/* */` 注释，可以直接使用 `config.example.json` 作为模板。
 
@@ -211,55 +209,6 @@ docker compose up -d --build
 ```bash
 docker compose down
 ```
-
-## 青龙模式
-
-青龙模式会读取和更新青龙环境变量：
-
-```text
-Ray_BiliBiliCookies__0
-Ray_BiliBiliCookies__1
-Ray_BiliBiliCookies__2
-```
-
-### 1. 修改配置
-
-把 `config/config.json` 中的存储模式改为 `qinglong`：
-
-```jsonc
-{
-  "storage": {
-    "mode": "qinglong"
-  },
-  "qinglong": {
-    "url": "http://qinglong:5600",
-    "clientId": "your-client-id",
-    "clientSecret": "your-client-secret"
-  }
-}
-```
-
-字段说明：
-
-- `qinglong.url`：青龙地址，例如 `http://127.0.0.1:5600` 或 Docker 网络里的 `http://qinglong:5600`。
-- `qinglong.clientId`：青龙 OpenAPI Client ID。
-- `qinglong.clientSecret`：青龙 OpenAPI Client Secret。
-
-也可以用环境变量覆盖：
-
-```bash
-export BILITOOL_STORAGE_MODE=qinglong
-export QL_URL=http://127.0.0.1:5600
-export QL_CLIENT_ID=your-client-id
-export QL_CLIENT_SECRET=your-client-secret
-```
-
-### 2. 自动更新规则
-
-扫码登录时：
-
-- 如果青龙已有相同 UID 的 `Ray_BiliBiliCookies__N`，会更新该变量。
-- 如果不存在该 UID，会新增下一个编号。
 
 ## 本地 Go 运行
 

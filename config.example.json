@@ -43,12 +43,7 @@
 
   // Cookie 和账号存储配置。
   "storage": {
-    // 存储模式：
-    // "json"：使用本地 config/accounts.json。
-    // "qinglong"：读取并更新青龙环境变量。
-    "mode": "json",
-
-    // 仅在 mode 为 "json" 时使用。
+    // 账号 Cookie 保存位置。
     // Docker Compose 中 /app/config 会挂载到当前目录的 ./config。
     "accountsFile": "config/accounts.json"
   },
@@ -57,19 +52,5 @@
   // 如果 B 站接口返回风控错误，可以把 userAgent 改成你浏览器里的真实 UA。
   "security": {
     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
-  },
-
-  // 青龙配置，仅在 storage.mode 为 "qinglong" 时使用。
-  "qinglong": {
-    // 青龙地址，例如：
-    // "http://127.0.0.1:5600"
-    // "http://qinglong:5600"
-    "url": "",
-
-    // 青龙 OpenAPI Client ID。
-    "clientId": "",
-
-    // 青龙 OpenAPI Client Secret。
-    "clientSecret": ""
   }
 }

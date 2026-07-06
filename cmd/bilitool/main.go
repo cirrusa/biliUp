@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -19,7 +18,6 @@ import (
 	"bilitool-go/internal/config"
 	"bilitool-go/internal/cookie"
 	"bilitool-go/internal/login"
-	"bilitool-go/internal/qinglong"
 	"bilitool-go/internal/store"
 	"bilitool-go/internal/tasks"
 )
@@ -80,17 +78,7 @@ func loadConfig(path string) (config.Config, error) {
 }
 
 func buildStore(cfg config.Config) (store.Store, error) {
-	switch strings.ToLower(cfg.Storage.Mode) {
-	case config.StorageJSON:
-		return store.NewJSONStore(cfg.Storage.AccountsFile), nil
-	case config.StorageQingLong:
-		if cfg.QingLong.URL == "" || cfg.QingLong.ClientID == "" || cfg.QingLong.ClientSecret == "" {
-			return nil, errors.New("qinglong storage requires qinglong.url/clientId/clientSecret or QL_URL/QL_CLIENT_ID/QL_CLIENT_SECRET")
-		}
-		return qinglong.NewStore(qinglong.NewClient(cfg.QingLong.URL, cfg.QingLong.ClientID, cfg.QingLong.ClientSecret)), nil
-	default:
-		return nil, fmt.Errorf("unsupported storage mode %q", cfg.Storage.Mode)
-	}
+	return store.NewJSONStore(cfg.Storage.AccountsFile), nil
 }
 
 func runLogin(ctx context.Context, client *bili.Client, st store.Store) error {

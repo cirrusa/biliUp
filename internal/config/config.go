@@ -2,23 +2,15 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
-)
-
-const (
-	StorageJSON     = "json"
-	StorageQingLong = "qinglong"
 )
 
 type Config struct {
 	Task     TaskConfig     `json:"task"`
 	Storage  StorageConfig  `json:"storage"`
 	Security SecurityConfig `json:"security"`
-	QingLong QingLongConfig `json:"qinglong"`
 }
 
 type TaskConfig struct {
@@ -38,18 +30,11 @@ type TaskConfig struct {
 }
 
 type StorageConfig struct {
-	Mode         string `json:"mode"`
 	AccountsFile string `json:"accountsFile"`
 }
 
 type SecurityConfig struct {
 	UserAgent string `json:"userAgent"`
-}
-
-type QingLongConfig struct {
-	URL          string `json:"url"`
-	ClientID     string `json:"clientId"`
-	ClientSecret string `json:"clientSecret"`
 }
 
 func Default() Config {
@@ -68,7 +53,6 @@ func Default() Config {
 			Timeout:                30 * time.Second,
 		},
 		Storage: StorageConfig{
-			Mode:         StorageJSON,
 			AccountsFile: "/app/config/accounts.json",
 		},
 		Security: SecurityConfig{
@@ -106,32 +90,12 @@ func Load(path string) (Config, error) {
 }
 
 func applyEnv(cfg *Config) {
-	if v := os.Getenv("BILITOOL_STORAGE_MODE"); v != "" {
-		cfg.Storage.Mode = v
-	}
 	if v := os.Getenv("BILITOOL_ACCOUNTS_FILE"); v != "" {
 		cfg.Storage.AccountsFile = v
-	}
-	if v := os.Getenv("QL_URL"); v != "" {
-		cfg.QingLong.URL = v
-	}
-	if v := os.Getenv("QL_CLIENT_ID"); v != "" {
-		cfg.QingLong.ClientID = v
-	}
-	if v := os.Getenv("QL_CLIENT_SECRET"); v != "" {
-		cfg.QingLong.ClientSecret = v
 	}
 }
 
 func validate(cfg Config) error {
-	mode := strings.ToLower(strings.TrimSpace(cfg.Storage.Mode))
-	switch mode {
-	case StorageJSON, StorageQingLong:
-	case "":
-		return errors.New("storage mode is required")
-	default:
-		return fmt.Errorf("unsupported storage mode %q", cfg.Storage.Mode)
-	}
 	if cfg.Task.NumberOfCoins < 0 || cfg.Task.NumberOfCoins > 5 {
 		return fmt.Errorf("numberOfCoins must be in [0,5], got %d", cfg.Task.NumberOfCoins)
 	}
