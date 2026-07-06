@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"bili-up/internal/cookie"
 )
 
 type Account struct {
@@ -51,6 +53,13 @@ func (s *JSONStore) List(ctx context.Context) ([]Account, error) {
 	if err := json.Unmarshal(data, &accounts); err != nil {
 		return nil, err
 	}
+	for i := range accounts {
+		if accounts[i].UID == "" {
+			if ck, err := cookie.Parse(accounts[i].Cookie); err == nil {
+				accounts[i].UID = ck.UserID()
+			}
+		}
+	}
 	return accounts, nil
 }
 
@@ -78,7 +87,11 @@ func (s *JSONStore) Save(ctx context.Context, account Account) error {
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o755); err != nil {
 		return err
 	}
-	data, err := json.MarshalIndent(accounts, "", "  ")
+	records := make([]accountRecord, 0, len(accounts))
+	for _, account := range accounts {
+		records = append(records, accountRecord{Cookie: account.Cookie})
+	}
+	data, err := json.MarshalIndent(records, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -87,4 +100,8 @@ func (s *JSONStore) Save(ctx context.Context, account Account) error {
 		return err
 	}
 	return os.Rename(tmp, s.path)
+}
+
+type accountRecord struct {
+	Cookie string `json:"cookie"`
 }

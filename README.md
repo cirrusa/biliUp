@@ -43,16 +43,18 @@ cp config.example.json config/config.json
 ```text
 go
 ├── config
-│   └── config.json
+│   ├── config.json
+│   └── accounts.json
 ├── logs
 ├── Dockerfile
 └── docker-compose.yml
 ```
 
-`accounts.json` 不需要手动创建。扫码登录成功后会自动生成：
+`accounts.json` 可以扫码登录后自动生成，也可以复制模板后手动编辑：
 
-```text
-go/config/accounts.json
+```bash
+cp config/accounts.example.json config/accounts.json
+nano config/accounts.json
 ```
 
 ### 2. 修改配置
@@ -135,7 +137,7 @@ docker compose logs -f
 
 ### 5. 扫码登录
 
-首次使用必须先扫码登录：
+首次使用可以扫码登录：
 
 ```bash
 docker compose run --rm bili-up --config /app/config/config.json login
@@ -152,6 +154,24 @@ go/config/accounts.json
 ```bash
 docker compose up -d
 ```
+
+如果已经有 B 站 Cookie，也可以直接编辑宿主机上的账号文件：
+
+```bash
+nano config/accounts.json
+```
+
+格式如下：
+
+```json
+[
+  {
+    "cookie": "DedeUserID=xxx; SESSDATA=xxx; bili_jct=xxx"
+  }
+]
+```
+
+`accounts.json` 只需要保存 Cookie。`cookie` 必须至少包含 `DedeUserID`、`SESSDATA`、`bili_jct`，程序会自动从 Cookie 里识别 UID。
 
 ### 6. 查看账号
 
@@ -226,17 +246,19 @@ go run ./cmd/bili-up --config ./config.example.json scheduler
 
 ### 1. `accounts.json` 在哪里？
 
-JSON 模式下默认在：
+宿主机路径：
 
 ```text
-go/config/accounts.json
+config/accounts.json
 ```
 
-Docker 容器内路径是：
+Docker 容器内路径：
 
 ```text
 /app/config/accounts.json
 ```
+
+`docker-compose.yml` 会把宿主机 `./config` 挂载到容器 `/app/config`，所以手动编辑 `config/accounts.json` 后容器可以直接读取。
 
 ### 2. 如何禁止投币？
 
