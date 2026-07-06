@@ -5,9 +5,11 @@ services:
       dockerfile: Dockerfile
     container_name: bili-up
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       TZ: Asia/Shanghai
     volumes:
       - ./config:/app/config
       - ./logs:/app/logs
-    command: ["--config", "/app/config/config.json", "scheduler"]
+    command: ["scheduler"]

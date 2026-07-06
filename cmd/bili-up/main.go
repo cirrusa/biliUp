@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -31,51 +30,66 @@ func main() {
 }
 
 func run(args []string) error {
-	fs := flag.NewFlagSet("bili-up", flag.ContinueOnError)
-	configPath := fs.String("config", "/app/config/config.json", "path to config json")
-	if err := fs.Parse(args); err != nil {
-		return err
+	logger, loggerCloser, err := newRuntimeLogger(0, os.Stdout)
+	if err != nil {
+		return fmt.Errorf("init logger: %w", err)
 	}
-	if fs.NArg() == 0 {
+	defer func() {
+		closeLogger(loggerCloser)
+	}()
+
+	var runErr error
+	defer func() {
+		if runErr != nil {
+			logger.Printf("error: %v", runErr)
+		}
+	}()
+
+	if len(args) == 0 {
 		printUsage()
 		return nil
 	}
 
-	cfg, err := loadConfig(*configPath)
+	cfg, err := loadConfig()
 	if err != nil {
-		return err
+		runErr = err
+		return runErr
 	}
+	nextLogger, nextCloser, err := newRuntimeLogger(cfg.Logging.RetentionDays, os.Stdout)
+	if err != nil {
+		runErr = fmt.Errorf("init logger: %w", err)
+		return runErr
+	}
+	closeLogger(loggerCloser)
+	logger = nextLogger
+	loggerCloser = nextCloser
 	st, err := buildStore(cfg)
 	if err != nil {
-		return err
+		runErr = err
+		return runErr
 	}
 	client := bili.NewClient(bili.Options{UserAgent: cfg.Security.UserAgent})
-	logger := log.New(os.Stdout, "", log.LstdFlags)
 
-	switch fs.Arg(0) {
+	command := args[0]
+	commandArgs := args[1:]
+	switch command {
 	case "login":
-		return runLogin(context.Background(), client, st)
+		runErr = runLogin(context.Background(), client, st)
 	case "run":
-		return runDaily(context.Background(), cfg, st, client, logger, fs.Args()[1:])
+		runErr = runDaily(context.Background(), cfg, st, client, logger, commandArgs)
 	case "scheduler":
-		return runScheduler(cfg, st, client, logger)
+		runErr = runScheduler(cfg, st, client, logger)
 	case "accounts":
-		return runAccounts(context.Background(), st)
+		runErr = runAccounts(context.Background(), st)
 	default:
 		printUsage()
-		return fmt.Errorf("unknown command %q", fs.Arg(0))
+		runErr = fmt.Errorf("unknown command %q", command)
 	}
+	return runErr
 }
 
-func loadConfig(path string) (config.Config, error) {
-	cfg, err := config.Load(path)
-	if err == nil {
-		return cfg, nil
-	}
-	if errors.Is(err, os.ErrNotExist) {
-		return config.Load("")
-	}
-	return config.Config{}, err
+func loadConfig() (config.Config, error) {
+	return config.Load()
 }
 
 func buildStore(cfg config.Config) (store.Store, error) {
@@ -170,7 +184,7 @@ func runAccounts(ctx context.Context, st store.Store) error {
 }
 
 func printUsage() {
-	fmt.Println("Usage: bili-up [--config /path/config.json] <login|run|scheduler|accounts>")
+	fmt.Println("Usage: bili-up <login|run|scheduler|accounts>")
 }
 
 type loginAdapter struct {

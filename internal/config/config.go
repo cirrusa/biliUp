@@ -1,40 +1,46 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
 type Config struct {
-	Task     TaskConfig     `json:"task"`
-	Storage  StorageConfig  `json:"storage"`
-	Security SecurityConfig `json:"security"`
+	Task     TaskConfig
+	Storage  StorageConfig
+	Security SecurityConfig
+	Logging  LoggingConfig
 }
 
 type TaskConfig struct {
-	Enabled                bool          `json:"enabled"`
-	Cron                   string        `json:"cron"`
-	WatchVideo             bool          `json:"watchVideo"`
-	ShareVideo             bool          `json:"shareVideo"`
-	NumberOfCoins          int           `json:"numberOfCoins"`
-	ProtectedCoins         int           `json:"protectedCoins"`
-	SaveCoinsWhenLv6       bool          `json:"saveCoinsWhenLv6"`
-	SelectLike             bool          `json:"selectLike"`
-	SupportUpIDs           []int64       `json:"supportUpIds"`
-	RequestIntervalSeconds int           `json:"requestIntervalSeconds"`
-	TimeoutSeconds         int           `json:"timeoutSeconds"`
-	RequestInterval        time.Duration `json:"-"`
-	Timeout                time.Duration `json:"-"`
+	Enabled                bool
+	Cron                   string
+	WatchVideo             bool
+	ShareVideo             bool
+	NumberOfCoins          int
+	ProtectedCoins         int
+	SaveCoinsWhenLv6       bool
+	SelectLike             bool
+	SupportUpIDs           []int64
+	RequestIntervalSeconds int
+	TimeoutSeconds         int
+	RequestInterval        time.Duration
+	Timeout                time.Duration
 }
 
 type StorageConfig struct {
-	AccountsFile string `json:"accountsFile"`
+	AccountsFile string
 }
 
 type SecurityConfig struct {
-	UserAgent string `json:"userAgent"`
+	UserAgent string
+}
+
+type LoggingConfig struct {
+	RetentionDays int
 }
 
 func Default() Config {
@@ -53,27 +59,25 @@ func Default() Config {
 			Timeout:                30 * time.Second,
 		},
 		Storage: StorageConfig{
-			AccountsFile: "/app/config/accounts.json",
+			AccountsFile: "config/accounts.json",
 		},
 		Security: SecurityConfig{
 			UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
 		},
+		Logging: LoggingConfig{
+			RetentionDays: 90,
+		},
 	}
 }
 
-func Load(path string) (Config, error) {
+func Load() (Config, error) {
 	cfg := Default()
-	if path != "" {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return Config{}, err
-		}
-		if err := json.Unmarshal(stripJSONComments(data), &cfg); err != nil {
-			return Config{}, err
-		}
+	envFile, err := loadDotEnv(".env")
+	if err != nil {
+		return Config{}, err
 	}
 
-	applyEnv(&cfg)
+	applyEnv(&cfg, envFile)
 	if cfg.Task.RequestIntervalSeconds <= 0 {
 		cfg.Task.RequestIntervalSeconds = Default().Task.RequestIntervalSeconds
 	}
@@ -89,10 +93,60 @@ func Load(path string) (Config, error) {
 	return cfg, nil
 }
 
-func applyEnv(cfg *Config) {
-	if v := os.Getenv("BILITOOL_ACCOUNTS_FILE"); v != "" {
+func applyEnv(cfg *Config, envFile map[string]string) {
+	if v, ok := envValue("BILI_UP_TASK_ENABLED", envFile); ok {
+		cfg.Task.Enabled = parseBool(v, cfg.Task.Enabled)
+	}
+	if v, ok := envValue("BILI_UP_TASK_CRON", envFile); ok {
+		cfg.Task.Cron = v
+	}
+	if v, ok := envValue("BILI_UP_WATCH_VIDEO", envFile); ok {
+		cfg.Task.WatchVideo = parseBool(v, cfg.Task.WatchVideo)
+	}
+	if v, ok := envValue("BILI_UP_SHARE_VIDEO", envFile); ok {
+		cfg.Task.ShareVideo = parseBool(v, cfg.Task.ShareVideo)
+	}
+	if v, ok := envValue("BILI_UP_NUMBER_OF_COINS", envFile); ok {
+		cfg.Task.NumberOfCoins = parseInt(v, cfg.Task.NumberOfCoins)
+	}
+	if v, ok := envValue("BILI_UP_PROTECTED_COINS", envFile); ok {
+		cfg.Task.ProtectedCoins = parseInt(v, cfg.Task.ProtectedCoins)
+	}
+	if v, ok := envValue("BILI_UP_SAVE_COINS_WHEN_LV6", envFile); ok {
+		cfg.Task.SaveCoinsWhenLv6 = parseBool(v, cfg.Task.SaveCoinsWhenLv6)
+	}
+	if v, ok := envValue("BILI_UP_SELECT_LIKE", envFile); ok {
+		cfg.Task.SelectLike = parseBool(v, cfg.Task.SelectLike)
+	}
+	if v, ok := envValue("BILI_UP_SUPPORT_UP_IDS", envFile); ok {
+		cfg.Task.SupportUpIDs = parseInt64List(v)
+	}
+	if v, ok := envValue("BILI_UP_REQUEST_INTERVAL_SECONDS", envFile); ok {
+		cfg.Task.RequestIntervalSeconds = parseInt(v, cfg.Task.RequestIntervalSeconds)
+	}
+	if v, ok := envValue("BILI_UP_TIMEOUT_SECONDS", envFile); ok {
+		cfg.Task.TimeoutSeconds = parseInt(v, cfg.Task.TimeoutSeconds)
+	}
+	if v, ok := envValue("BILI_UP_ACCOUNTS_FILE", envFile); ok {
 		cfg.Storage.AccountsFile = v
 	}
+	if v, ok := envValue("BILITOOL_ACCOUNTS_FILE", envFile); ok {
+		cfg.Storage.AccountsFile = v
+	}
+	if v, ok := envValue("BILI_UP_USER_AGENT", envFile); ok {
+		cfg.Security.UserAgent = v
+	}
+	if v, ok := envValue("BILI_UP_LOG_RETENTION_DAYS", envFile); ok {
+		cfg.Logging.RetentionDays = parseInt(v, cfg.Logging.RetentionDays)
+	}
+}
+
+func envValue(key string, envFile map[string]string) (string, bool) {
+	if value, ok := os.LookupEnv(key); ok {
+		return value, true
+	}
+	value, ok := envFile[key]
+	return value, ok
 }
 
 func validate(cfg Config) error {
@@ -105,58 +159,75 @@ func validate(cfg Config) error {
 	return nil
 }
 
-func stripJSONComments(data []byte) []byte {
-	out := make([]byte, 0, len(data))
-	inString := false
-	escaped := false
-	for i := 0; i < len(data); i++ {
-		ch := data[i]
-		if inString {
-			out = append(out, ch)
-			if escaped {
-				escaped = false
-				continue
-			}
-			switch ch {
-			case '\\':
-				escaped = true
-			case '"':
-				inString = false
-			}
+func loadDotEnv(path string) (map[string]string, error) {
+	values := map[string]string{}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return values, nil
+		}
+		return nil, err
+	}
+	for lineNo, raw := range strings.Split(string(data), "\n") {
+		line := strings.TrimSpace(strings.TrimSuffix(raw, "\r"))
+		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			return nil, fmt.Errorf("%s:%d: expected KEY=value", path, lineNo+1)
+		}
+		key = strings.TrimSpace(key)
+		if key == "" {
+			return nil, fmt.Errorf("%s:%d: empty key", path, lineNo+1)
+		}
+		values[key] = parseDotEnvValue(strings.TrimSpace(value))
+	}
+	return values, nil
+}
 
-		if ch == '"' {
-			inString = true
-			out = append(out, ch)
+func parseDotEnvValue(value string) string {
+	if len(value) >= 2 {
+		quote := value[0]
+		if (quote == '"' || quote == '\'') && value[len(value)-1] == quote {
+			return value[1 : len(value)-1]
+		}
+	}
+	if i := strings.Index(value, " #"); i >= 0 {
+		value = strings.TrimSpace(value[:i])
+	}
+	return value
+}
+
+func parseBool(value string, fallback bool) bool {
+	parsed, err := strconv.ParseBool(strings.TrimSpace(value))
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func parseInt(value string, fallback int) int {
+	parsed, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func parseInt64List(value string) []int64 {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	parts := strings.Split(value, ",")
+	out := make([]int64, 0, len(parts))
+	for _, part := range parts {
+		parsed, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64)
+		if err != nil {
 			continue
 		}
-
-		if ch == '/' && i+1 < len(data) {
-			next := data[i+1]
-			if next == '/' {
-				i += 2
-				for i < len(data) && data[i] != '\n' && data[i] != '\r' {
-					i++
-				}
-				if i < len(data) {
-					out = append(out, data[i])
-				}
-				continue
-			}
-			if next == '*' {
-				i += 2
-				for i+1 < len(data) && !(data[i] == '*' && data[i+1] == '/') {
-					if data[i] == '\n' || data[i] == '\r' {
-						out = append(out, data[i])
-					}
-					i++
-				}
-				i++
-				continue
-			}
-		}
-		out = append(out, ch)
+		out = append(out, parsed)
 	}
 	return out
 }

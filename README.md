@@ -9,7 +9,7 @@
 - 观看视频
 - 分享视频
 - 投币
-- JSON 文件存储
+- JSON 文件存储账号
 
 不包括推送、漫画、直播、大会员、充电、取关等功能。
 
@@ -22,28 +22,26 @@
 
 检查命令：
 
-```bash
+```powershell
 docker --version
 docker compose version
 ```
 
-如果没有安装 Docker，可以参考 Docker 官方 Debian 安装文档。安装完成后，确保当前用户能执行 `docker` 命令，或使用 `sudo docker ...`。
-
 ## Docker Compose 使用
 
-### 1. 准备配置目录
+### 1. 准备配置和数据目录
 
-```bash
-mkdir -p config logs
-cp config.example.json config/config.json
+```powershell
+New-Item -ItemType Directory -Force config, logs
+Copy-Item .env.example .env
 ```
 
 目录结构：
 
 ```text
-go
+biliUp
+├── .env
 ├── config
-│   ├── config.json
 │   └── accounts.json
 ├── logs
 ├── Dockerfile
@@ -52,86 +50,73 @@ go
 
 `accounts.json` 可以扫码登录后自动生成，也可以复制模板后手动编辑：
 
-```bash
-cp config/accounts.example.json config/accounts.json
-nano config/accounts.json
+```powershell
+Copy-Item .\config\accounts.example.json .\config\accounts.json
+notepad .\config\accounts.json
 ```
 
-### 2. 修改配置
-
-编辑配置文件：
-
-```bash
-nano config/config.json
-```
+### 2. 修改 `.env`
 
 常用配置：
 
-```jsonc
-{
-  "task": {
-    "cron": "0 15 * * *",
-    "watchVideo": true,
-    "shareVideo": true,
-    "numberOfCoins": 5,
-    "protectedCoins": 0,
-    "saveCoinsWhenLv6": false,
-    "selectLike": true,
-    "supportUpIds": []
-  },
-  "storage": {
-    "accountsFile": "config/accounts.json"
-  }
-}
+```dotenv
+BILI_UP_TASK_CRON=0 15 * * *
+BILI_UP_WATCH_VIDEO=true
+BILI_UP_SHARE_VIDEO=true
+BILI_UP_NUMBER_OF_COINS=5
+BILI_UP_PROTECTED_COINS=0
+BILI_UP_SAVE_COINS_WHEN_LV6=false
+BILI_UP_SELECT_LIKE=true
+BILI_UP_SUPPORT_UP_IDS=
+BILI_UP_REQUEST_INTERVAL_SECONDS=3
+BILI_UP_TIMEOUT_SECONDS=30
+BILI_UP_ACCOUNTS_FILE=config/accounts.json
+BILI_UP_LOG_RETENTION_DAYS=90
 ```
 
 说明：
 
-- `task.cron`：定时执行时间，默认每天 15:00，时区为 `Asia/Shanghai`。
-- `task.watchVideo`：是否执行观看视频任务。
-- `task.shareVideo`：是否执行分享视频任务。
-- `task.numberOfCoins`：每日目标投币数，范围 `0-5`；设为 `0` 表示不投币。
-- `task.protectedCoins`：保留硬币数，余额小于等于该值时不投币。
-- `task.saveCoinsWhenLv6`：账号达到 Lv6 后是否跳过投币。
-- `task.selectLike`：投币时是否同时点赞。
-- `task.supportUpIds`：优先支持的 UP 主 UID；为空时使用热门/排行榜视频。
-- `storage.accountsFile`：账号 Cookie 保存文件。
-
-配置文件支持 `//` 和 `/* */` 注释，可以直接使用 `config.example.json` 作为模板。
+- `BILI_UP_TASK_CRON`：定时执行时间，默认每天 15:00，时区为 `Asia/Shanghai`。
+- `BILI_UP_WATCH_VIDEO`：是否执行观看视频任务。
+- `BILI_UP_SHARE_VIDEO`：是否执行分享视频任务。
+- `BILI_UP_NUMBER_OF_COINS`：每日目标投币数，范围 `0-5`；设为 `0` 表示不投币。
+- `BILI_UP_PROTECTED_COINS`：保留硬币数，余额小于等于该值时不投币。
+- `BILI_UP_SAVE_COINS_WHEN_LV6`：账号达到 Lv6 后是否跳过投币。
+- `BILI_UP_SELECT_LIKE`：投币时是否同时点赞。
+- `BILI_UP_SUPPORT_UP_IDS`：优先支持的 UP 主 UID，多个用英文逗号分隔；为空时使用热门/排行榜视频。
+- `BILI_UP_ACCOUNTS_FILE`：账号 Cookie 保存文件。
+- `BILI_UP_LOG_RETENTION_DAYS`：按天日志文件保留天数，默认 `90`；设为 `0` 或负数表示不自动清理。
 
 ### 3. 构建并启动定时任务
 
-```bash
+```powershell
 docker compose up -d --build
 ```
 
 默认启动命令：
 
-```bash
-bili-up --config /app/config/config.json scheduler
-```
-
-容器会读取：
-
-```text
-/app/config/config.json
-```
-
-对应宿主机文件：
-
-```text
-go/config/config.json
+```powershell
+bili-up scheduler
 ```
 
 ### 4. 查看日志
 
-```bash
-docker logs -f bili-up
+程序会同时把日志输出到容器控制台和按天日志文件：
+
+```text
+logs/bili-up-YYYY-MM-DD.log
 ```
 
-或：
+例如：
 
-```bash
+```text
+logs/bili-up-2026-07-06.log
+```
+
+也可以继续查看 Docker 日志：
+
+```powershell
+docker logs -f bili-up
 docker compose logs -f
 ```
 
@@ -139,26 +124,26 @@ docker compose logs -f
 
 首次使用可以扫码登录：
 
-```bash
-docker compose run --rm bili-up --config /app/config/config.json login
+```powershell
+docker compose run --rm bili-up login
 ```
 
 终端会显示紧凑二维码，并在下方打印登录 URL 作为兜底。使用 B 站 App 扫码确认后，账号 Cookie 会写入：
 
 ```text
-go/config/accounts.json
+config/accounts.json
 ```
 
 登录完成后，重新启动定时容器：
 
-```bash
+```powershell
 docker compose up -d
 ```
 
-如果已经有 B 站 Cookie，也可以直接编辑宿主机上的账号文件：
+如果已经有 B 站 Cookie，也可以直接编辑账号文件：
 
-```bash
-nano config/accounts.json
+```powershell
+notepad .\config\accounts.json
 ```
 
 格式如下：
@@ -175,8 +160,8 @@ nano config/accounts.json
 
 ### 6. 查看账号
 
-```bash
-docker compose run --rm bili-up --config /app/config/config.json accounts
+```powershell
+docker compose run --rm bili-up accounts
 ```
 
 输出会显示账号 UID 和 Cookie 字段是否完整。
@@ -185,74 +170,56 @@ docker compose run --rm bili-up --config /app/config/config.json accounts
 
 真实执行每日任务：
 
-```bash
-docker compose run --rm bili-up --config /app/config/config.json run
+```powershell
+docker compose run --rm bili-up run
 ```
 
 只检查账号读取，不调用 B 站任务接口：
 
-```bash
-docker compose run --rm bili-up --config /app/config/config.json run --dry-run
+```powershell
+docker compose run --rm bili-up run --dry-run
 ```
 
 注意：真实 `run` 会执行观看、分享和投币，可能消耗硬币。
 
 ### 8. 停止、重启、更新
 
-停止：
-
-```bash
+```powershell
 docker compose stop
-```
-
-重启：
-
-```bash
 docker compose up -d
-```
-
-重新构建并启动：
-
-```bash
 docker compose up -d --build
-```
-
-停止并删除容器：
-
-```bash
 docker compose down
 ```
 
 ## 本地 Go 运行
 
-如果不使用 Docker，也可以直接运行。
-
 需要 Go 环境。
 
-```bash
+```powershell
 go version
+Copy-Item .env.example .env
 ```
 
-在 `go/` 目录执行：
+在仓库根目录执行：
 
-```bash
-go run ./cmd/bili-up --config ./config.example.json accounts
-go run ./cmd/bili-up --config ./config.example.json login
-go run ./cmd/bili-up --config ./config.example.json run
-go run ./cmd/bili-up --config ./config.example.json scheduler
+```powershell
+go run ./cmd/bili-up accounts
+go run ./cmd/bili-up login
+go run ./cmd/bili-up run
+go run ./cmd/bili-up scheduler
 ```
 
 ## 常见问题
 
 ### 1. `accounts.json` 在哪里？
 
-宿主机路径：
+默认路径：
 
 ```text
 config/accounts.json
 ```
 
-Docker 容器内路径：
+Docker 中程序工作目录是 `/app`，所以容器内等价路径是：
 
 ```text
 /app/config/accounts.json
@@ -262,26 +229,26 @@ Docker 容器内路径：
 
 ### 2. 如何禁止投币？
 
-把配置改成：
+把 `.env` 改成：
 
-```jsonc
-"numberOfCoins": 0
+```dotenv
+BILI_UP_NUMBER_OF_COINS=0
 ```
 
 ### 3. 如何保留硬币？
 
 例如至少保留 10 个硬币：
 
-```jsonc
-"protectedCoins": 10
+```dotenv
+BILI_UP_PROTECTED_COINS=10
 ```
 
 ### 4. 如何指定优先投给某些 UP？
 
-填写 UP 主 UID：
+填写 UP 主 UID，多个用英文逗号分隔：
 
-```jsonc
-"supportUpIds": [123456, 987654]
+```dotenv
+BILI_UP_SUPPORT_UP_IDS=123456,987654
 ```
 
 程序会优先从这些 UP 的投稿中选视频。失败或为空时，会回退到热门/排行榜视频。
@@ -298,6 +265,6 @@ Cookie 等同于登录凭据：
 
 运行测试：
 
-```bash
+```powershell
 go test ./...
 ```
