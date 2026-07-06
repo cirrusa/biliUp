@@ -12,7 +12,8 @@ FROM alpine:3.20
 ARG ALPINE_MIRROR=https://mirrors.aliyun.com/alpine
 WORKDIR /app
 RUN sed -i "s#https://dl-cdn.alpinelinux.org/alpine#${ALPINE_MIRROR}#g" /etc/apk/repositories
-RUN adduser -D -H app \
+RUN apk add --no-cache tzdata \
+    && adduser -D -H app \
     && mkdir -p /app/config /app/logs \
     && chown -R app:app /app
 COPY --from=build /out/bili-up /usr/local/bin/bili-up
