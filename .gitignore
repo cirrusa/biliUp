@@ -1,0 +1,30 @@
+# Local runtime data
+/config/
+/logs/
+*.log
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Go build/test output
+/bin/
+/dist/
+/build/
+*.exe
+*.test
+*.out
+coverage.*
+
+# Temporary files
+/tmp/
+*.tmp
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
