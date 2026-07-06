@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -89,15 +90,19 @@ func runLogin(ctx context.Context, client *bili.Client, st store.Store) error {
 		PollDelay: 5 * time.Second,
 	}
 	account, err := svc.Login(ctx, func(url string) {
-		fmt.Println("Scan this QR code with Bilibili app:")
-		qrterminal.Generate(url, qrterminal.L, os.Stdout)
-		fmt.Println(url)
+		printLoginQRCode(url, os.Stdout)
 	})
 	if err != nil {
 		return err
 	}
 	fmt.Printf("login saved uid=%s\n", account.UID)
 	return nil
+}
+
+func printLoginQRCode(url string, w io.Writer) {
+	fmt.Fprintln(w, "Scan this QR code with Bilibili app:")
+	qrterminal.GenerateHalfBlock(url, qrterminal.L, w)
+	fmt.Fprintln(w, url)
 }
 
 func runDaily(ctx context.Context, cfg config.Config, st store.Store, client *bili.Client, logger *log.Logger, args []string) error {

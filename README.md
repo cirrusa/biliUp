@@ -141,7 +141,7 @@ docker compose logs -f
 docker compose run --rm bili-up --config /app/config/config.json login
 ```
 
-终端会显示二维码。使用 B 站 App 扫码确认后，账号 Cookie 会写入：
+终端会显示紧凑二维码，并在下方打印登录 URL 作为兜底。使用 B 站 App 扫码确认后，账号 Cookie 会写入：
 
 ```text
 go/config/accounts.json
