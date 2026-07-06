@@ -1,0 +1,75 @@
+{
+  // 每日任务配置。
+  "task": {
+    // 是否启用任务。
+    "enabled": true,
+
+    // 定时任务表达式。
+    // 格式：分钟 小时 日 月 星期。
+    // 默认表示 Asia/Shanghai 时区每天 15:00 执行。
+    "cron": "0 15 * * *",
+
+    // 是否执行每日观看视频任务。
+    "watchVideo": true,
+
+    // 是否执行每日分享视频任务。
+    "shareVideo": true,
+
+    // 每日目标投币数量，范围 0-5。
+    // 设置为 0 表示不投币。
+    "numberOfCoins": 5,
+
+    // 保留硬币数量。
+    // 如果账号余额小于或等于该值，则跳过投币。
+    "protectedCoins": 0,
+
+    // 账号达到 Lv6 后是否跳过投币。
+    "saveCoinsWhenLv6": false,
+
+    // 投币时是否同时点赞。
+    "selectLike": true,
+
+    // 优先支持的 UP 主 UID 列表。
+    // 程序会优先从这些 UP 的投稿中选择视频。
+    // 留空时使用热门/排行榜视频。
+    "supportUpIds": [],
+
+    // 多次任务接口调用之间的间隔秒数。
+    "requestIntervalSeconds": 3,
+
+    // 单次 HTTP 请求超时时间，单位秒。
+    "timeoutSeconds": 30
+  },
+
+  // Cookie 和账号存储配置。
+  "storage": {
+    // 存储模式：
+    // "json"：使用本地 config/accounts.json。
+    // "qinglong"：读取并更新青龙环境变量。
+    "mode": "json",
+
+    // 仅在 mode 为 "json" 时使用。
+    // Docker Compose 中 /app/config 会挂载到当前目录的 ./config。
+    "accountsFile": "config/accounts.json"
+  },
+
+  // 请求身份配置。
+  // 如果 B 站接口返回风控错误，可以把 userAgent 改成你浏览器里的真实 UA。
+  "security": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+  },
+
+  // 青龙配置，仅在 storage.mode 为 "qinglong" 时使用。
+  "qinglong": {
+    // 青龙地址，例如：
+    // "http://127.0.0.1:5600"
+    // "http://qinglong:5600"
+    "url": "",
+
+    // 青龙 OpenAPI Client ID。
+    "clientId": "",
+
+    // 青龙 OpenAPI Client Secret。
+    "clientSecret": ""
+  }
+}
