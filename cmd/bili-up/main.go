@@ -14,12 +14,12 @@ import (
 	"github.com/mdp/qrterminal/v3"
 	"github.com/robfig/cron/v3"
 
-	"bilitool-go/internal/bili"
-	"bilitool-go/internal/config"
-	"bilitool-go/internal/cookie"
-	"bilitool-go/internal/login"
-	"bilitool-go/internal/store"
-	"bilitool-go/internal/tasks"
+	"bili-up/internal/bili"
+	"bili-up/internal/config"
+	"bili-up/internal/cookie"
+	"bili-up/internal/login"
+	"bili-up/internal/store"
+	"bili-up/internal/tasks"
 )
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 }
 
 func run(args []string) error {
-	fs := flag.NewFlagSet("bilitool", flag.ContinueOnError)
+	fs := flag.NewFlagSet("bili-up", flag.ContinueOnError)
 	configPath := fs.String("config", "/app/config/config.json", "path to config json")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -165,7 +165,7 @@ func runAccounts(ctx context.Context, st store.Store) error {
 }
 
 func printUsage() {
-	fmt.Println("Usage: bilitool [--config /path/config.json] <login|run|scheduler|accounts>")
+	fmt.Println("Usage: bili-up [--config /path/config.json] <login|run|scheduler|accounts>")
 }
 
 type loginAdapter struct {

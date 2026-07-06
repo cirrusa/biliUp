@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"bilitool-go/internal/cookie"
-	"bilitool-go/internal/wbi"
+	"bili-up/internal/cookie"
+	"bili-up/internal/wbi"
 )
 
 type Options struct {

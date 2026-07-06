@@ -1,4 +1,4 @@
-module bilitool-go
+module bili-up
 
 go 1.23
 

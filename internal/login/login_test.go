@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"bilitool-go/internal/cookie"
-	"bilitool-go/internal/store"
+	"bili-up/internal/cookie"
+	"bili-up/internal/store"
 )
 
 func TestServiceLoginSavesCompletedCookieByUID(t *testing.T) {

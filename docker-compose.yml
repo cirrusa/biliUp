@@ -1,9 +1,9 @@
 services:
-  bilitool-go:
+  bili-up:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: bilitool-go
+    container_name: bili-up
     restart: unless-stopped
     environment:
       TZ: Asia/Shanghai

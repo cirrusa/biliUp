@@ -1,8 +1,6 @@
-# BiliTool Go 轻量版
+# Bili-Up 轻量版
 
-这是一个放在原仓库 `go/` 目录下的轻量 Go 版本，只保留 B 站每日经验相关核心功能。
-
-保留功能：
+功能：
 
 - 扫码登录
 - 多账号管理
@@ -13,15 +11,12 @@
 - 投币
 - JSON 文件存储
 
-不包含原项目里的 Web UI、推送、漫画、直播、大会员、充电、取关等功能。
+不包括推送、漫画、直播、大会员、充电、取关等功能。
 
 ## 环境说明
 
-主要部署环境按 Debian 12 编写。
-
 需要：
 
-- Debian 12
 - Docker
 - Docker Compose v2
 
@@ -35,8 +30,6 @@ docker compose version
 如果没有安装 Docker，可以参考 Docker 官方 Debian 安装文档。安装完成后，确保当前用户能执行 `docker` 命令，或使用 `sudo docker ...`。
 
 ## Docker Compose 使用
-
-下面命令都在本目录执行，也就是仓库里的 `go/` 目录。
 
 ### 1. 准备配置目录
 
@@ -113,7 +106,7 @@ docker compose up -d --build
 默认启动命令：
 
 ```bash
-bilitool --config /app/config/config.json scheduler
+bili-up --config /app/config/config.json scheduler
 ```
 
 容器会读取：
@@ -131,7 +124,7 @@ go/config/config.json
 ### 4. 查看日志
 
 ```bash
-docker logs -f bilitool-go
+docker logs -f bili-up
 ```
 
 或：
@@ -145,7 +138,7 @@ docker compose logs -f
 首次使用必须先扫码登录：
 
 ```bash
-docker compose run --rm bilitool-go --config /app/config/config.json login
+docker compose run --rm bili-up --config /app/config/config.json login
 ```
 
 终端会显示二维码。使用 B 站 App 扫码确认后，账号 Cookie 会写入：
@@ -163,7 +156,7 @@ docker compose up -d
 ### 6. 查看账号
 
 ```bash
-docker compose run --rm bilitool-go --config /app/config/config.json accounts
+docker compose run --rm bili-up --config /app/config/config.json accounts
 ```
 
 输出会显示账号 UID 和 Cookie 字段是否完整。
@@ -173,13 +166,13 @@ docker compose run --rm bilitool-go --config /app/config/config.json accounts
 真实执行每日任务：
 
 ```bash
-docker compose run --rm bilitool-go --config /app/config/config.json run
+docker compose run --rm bili-up --config /app/config/config.json run
 ```
 
 只检查账号读取，不调用 B 站任务接口：
 
 ```bash
-docker compose run --rm bilitool-go --config /app/config/config.json run --dry-run
+docker compose run --rm bili-up --config /app/config/config.json run --dry-run
 ```
 
 注意：真实 `run` 会执行观看、分享和投币，可能消耗硬币。
@@ -223,10 +216,10 @@ go version
 在 `go/` 目录执行：
 
 ```bash
-go run ./cmd/bilitool --config ./config.example.json accounts
-go run ./cmd/bilitool --config ./config.example.json login
-go run ./cmd/bilitool --config ./config.example.json run
-go run ./cmd/bilitool --config ./config.example.json scheduler
+go run ./cmd/bili-up --config ./config.example.json accounts
+go run ./cmd/bili-up --config ./config.example.json login
+go run ./cmd/bili-up --config ./config.example.json run
+go run ./cmd/bili-up --config ./config.example.json scheduler
 ```
 
 ## 常见问题

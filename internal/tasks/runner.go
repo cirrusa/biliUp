@@ -9,11 +9,11 @@ import (
 	"math/rand"
 	"time"
 
-	"bilitool-go/internal/bili"
-	"bilitool-go/internal/config"
-	"bilitool-go/internal/cookie"
-	"bilitool-go/internal/store"
-	"bilitool-go/internal/wbi"
+	"bili-up/internal/bili"
+	"bili-up/internal/config"
+	"bili-up/internal/cookie"
+	"bili-up/internal/store"
+	"bili-up/internal/wbi"
 )
 
 type BiliClient interface {

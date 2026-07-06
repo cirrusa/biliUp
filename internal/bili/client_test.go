@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"bilitool-go/internal/cookie"
-	"bilitool-go/internal/wbi"
+	"bili-up/internal/cookie"
+	"bili-up/internal/wbi"
 )
 
 func TestPollQRCodeExtractsCookieFromSetCookieHeaders(t *testing.T) {

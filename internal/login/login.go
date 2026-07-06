@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"bilitool-go/internal/cookie"
-	"bilitool-go/internal/store"
+	"bili-up/internal/cookie"
+	"bili-up/internal/store"
 )
 
 type QRCode struct {

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"bilitool-go/internal/bili"
-	"bilitool-go/internal/config"
-	"bilitool-go/internal/cookie"
-	"bilitool-go/internal/wbi"
+	"bili-up/internal/bili"
+	"bili-up/internal/config"
+	"bili-up/internal/cookie"
+	"bili-up/internal/wbi"
 )
 
 func TestNeededCoinsRespectsAlreadyDonatedBalanceAndProtection(t *testing.T) {
