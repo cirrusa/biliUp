@@ -12,12 +12,13 @@ FROM alpine:3.20
 ARG ALPINE_MIRROR=https://mirrors.aliyun.com/alpine
 WORKDIR /app
 RUN sed -i "s#https://dl-cdn.alpinelinux.org/alpine#${ALPINE_MIRROR}#g" /etc/apk/repositories
-RUN apk add --no-cache tzdata \
+RUN apk add --no-cache tzdata su-exec \
     && adduser -D -H app \
     && mkdir -p /app/config /app/logs \
     && chown -R app:app /app
 COPY --from=build /out/bili-up /usr/local/bin/bili-up
-USER app
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 ENV TZ=Asia/Shanghai
-ENTRYPOINT ["bili-up"]
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["scheduler"]
