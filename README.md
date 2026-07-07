@@ -22,7 +22,7 @@
 
 检查命令：
 
-```powershell
+```bash
 docker --version
 docker compose version
 ```
@@ -31,9 +31,9 @@ docker compose version
 
 ### 1. 准备配置和数据目录
 
-```powershell
-New-Item -ItemType Directory -Force config, logs
-Copy-Item .env.example .env
+```bash
+mkdir -p config logs
+cp .env.example .env
 ```
 
 目录结构：
@@ -50,9 +50,9 @@ biliUp
 
 `accounts.json` 可以扫码登录后自动生成，也可以复制模板后手动编辑：
 
-```powershell
-Copy-Item .\config\accounts.example.json .\config\accounts.json
-notepad .\config\accounts.json
+```bash
+cp ./config/accounts.example.json ./config/accounts.json
+vi ./config/accounts.json
 ```
 
 ### 2. 修改 `.env`
@@ -89,13 +89,13 @@ BILI_UP_LOG_RETENTION_DAYS=90
 
 ### 3. 构建并启动定时任务容器
 
-```powershell
+```bash
 docker compose up -d --build
 ```
 
 默认启动命令：
 
-```powershell
+```bash
 bili-up scheduler
 ```
 
@@ -117,7 +117,7 @@ logs/bili-up-2026-07-06.log
 
 也可以继续查看 Docker 日志：
 
-```powershell
+```bash
 docker logs -f bili-up
 docker compose logs -f
 ```
@@ -126,7 +126,7 @@ docker compose logs -f
 
 首次使用可以在已启动的容器中扫码登录：
 
-```powershell
+```bash
 docker exec -it bili-up bili-up login
 ```
 
@@ -138,8 +138,8 @@ config/accounts.json
 
 如果已经有 B 站 Cookie，也可以直接编辑账号文件：
 
-```powershell
-notepad .\config\accounts.json
+```bash
+vi ./config/accounts.json
 ```
 
 格式如下：
@@ -156,7 +156,7 @@ notepad .\config\accounts.json
 
 ### 6. 查看账号
 
-```powershell
+```bash
 docker exec bili-up bili-up accounts
 ```
 
@@ -166,13 +166,13 @@ docker exec bili-up bili-up accounts
 
 真实执行每日任务：
 
-```powershell
+```bash
 docker exec bili-up bili-up run
 ```
 
 只检查账号读取，不调用 B 站任务接口：
 
-```powershell
+```bash
 docker exec bili-up bili-up run --dry-run
 ```
 
@@ -180,7 +180,7 @@ docker exec bili-up bili-up run --dry-run
 
 ### 8. 停止、重启、更新
 
-```powershell
+```bash
 docker compose stop
 docker compose up -d
 docker compose up -d --build
@@ -191,14 +191,14 @@ docker compose down
 
 需要 Go 环境。
 
-```powershell
+```bash
 go version
-Copy-Item .env.example .env
+cp .env.example .env
 ```
 
 在仓库根目录执行：
 
-```powershell
+```bash
 go run ./cmd/bili-up accounts
 go run ./cmd/bili-up login
 go run ./cmd/bili-up run
@@ -262,6 +262,6 @@ Cookie 等同于登录凭据：
 
 运行测试：
 
-```powershell
+```bash
 go test ./...
 ```
