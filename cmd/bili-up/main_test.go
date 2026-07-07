@@ -2,11 +2,17 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"bili-up/internal/bili"
+	"bili-up/internal/config"
+	"bili-up/internal/store"
 )
 
 func TestPrintLoginQRCode(t *testing.T) {
@@ -203,6 +209,20 @@ BILI_UP_LOG_RETENTION_DAYS=1
 	}
 }
 
+func TestRunDailySkipsWhenTaskDisabled(t *testing.T) {
+	var logs bytes.Buffer
+	cfg := config.Default()
+	cfg.Task.Enabled = false
+
+	err := runDaily(context.Background(), cfg, memoryAccountsStore{}, bili.NewClient(bili.Options{}), log.New(&logs, "", 0), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(logs.String(), "每日任务已禁用，跳过执行") {
+		t.Fatalf("unexpected logs: %q", logs.String())
+	}
+}
+
 func fixedNow(location *time.Location, date string) func() time.Time {
 	return func() time.Time {
 		t, err := time.ParseInLocation(logDateLayout, date, location)
@@ -217,4 +237,14 @@ type ioDiscard struct{}
 
 func (ioDiscard) Write(p []byte) (int, error) {
 	return len(p), nil
+}
+
+type memoryAccountsStore struct{}
+
+func (memoryAccountsStore) List(context.Context) ([]store.Account, error) {
+	return nil, nil
+}
+
+func (memoryAccountsStore) Save(context.Context, store.Account) error {
+	return nil
 }

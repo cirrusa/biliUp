@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -68,7 +69,12 @@ func run(args []string) error {
 		runErr = err
 		return runErr
 	}
-	client := bili.NewClient(bili.Options{UserAgent: cfg.Security.UserAgent})
+	client := bili.NewClient(bili.Options{
+		UserAgent: cfg.Security.UserAgent,
+		HTTPClient: &http.Client{
+			Timeout: cfg.Task.Timeout,
+		},
+	})
 
 	command := args[0]
 	commandArgs := args[1:]
@@ -76,7 +82,9 @@ func run(args []string) error {
 	case "login":
 		runErr = runLogin(context.Background(), client, st)
 	case "run":
-		runErr = runDaily(context.Background(), cfg, st, client, logger, commandArgs)
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.Task.Timeout)
+		defer cancel()
+		runErr = runDaily(ctx, cfg, st, client, logger, commandArgs)
 	case "scheduler":
 		runErr = runScheduler(cfg, st, client, logger)
 	case "accounts":
@@ -133,6 +141,10 @@ func runDaily(ctx context.Context, cfg config.Config, st store.Store, client *bi
 		fmt.Printf("演练模式：已加载 %d 个账号\n", len(accounts))
 		return nil
 	}
+	if !cfg.Task.Enabled {
+		logger.Printf("每日任务已禁用，跳过执行")
+		return nil
+	}
 	r := tasks.Runner{Bili: client, Store: st, Config: cfg, Logger: logger}
 	return r.Run(ctx)
 }
@@ -144,7 +156,7 @@ func runScheduler(cfg config.Config, st store.Store, client *bili.Client, logger
 	}
 	c := cron.New(cron.WithLocation(location))
 	_, err = c.AddFunc(cfg.Task.Cron, func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.Task.TimeoutSeconds*20)*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.Task.Timeout)
 		defer cancel()
 		if err := runDaily(ctx, cfg, st, client, logger, nil); err != nil {
 			logger.Printf("定时任务执行失败: %v", err)

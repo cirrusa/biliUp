@@ -141,7 +141,7 @@ func NewClient(options Options) *Client {
 		options.APIBaseURL = "https://api.bilibili.com"
 	}
 	if options.PassportBaseURL == "" {
-		options.PassportBaseURL = "http://passport.bilibili.com"
+		options.PassportBaseURL = "https://passport.bilibili.com"
 	}
 	if options.WWWBaseURL == "" {
 		options.WWWBaseURL = "https://www.bilibili.com"
@@ -201,8 +201,17 @@ func (c *Client) PollQRCode(ctx context.Context, key string) (*cookie.Cookie, bo
 	if err := checkCode(out.Code, out.Message); err != nil {
 		return nil, false, err
 	}
-	if out.Data.Code != 0 {
+	switch out.Data.Code {
+	case 0:
+	case 86090, 86101:
 		return nil, false, nil
+	case 86038:
+		return nil, false, errors.New("二维码已过期，请重新生成")
+	default:
+		if out.Data.Message == "" {
+			return nil, false, fmt.Errorf("二维码登录状态异常，code=%d", out.Data.Code)
+		}
+		return nil, false, fmt.Errorf("二维码登录状态异常，code=%d，message=%s", out.Data.Code, out.Data.Message)
 	}
 	ck := cookie.FromStringAllowPartial("")
 	ck.MergeSetCookieHeaders(resp.Header.Values("Set-Cookie"))

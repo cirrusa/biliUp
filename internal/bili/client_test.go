@@ -38,6 +38,35 @@ func TestPollQRCodeExtractsCookieFromSetCookieHeaders(t *testing.T) {
 	}
 }
 
+func TestNewClientUsesHTTPSPassportBaseURLByDefault(t *testing.T) {
+	client := NewClient(Options{})
+	if client.passportBase != "https://passport.bilibili.com" {
+		t.Fatalf("passportBase = %q", client.passportBase)
+	}
+}
+
+func TestPollQRCodeReturnsExplicitErrorWhenQRCodeExpires(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(Response[QRCodePoll]{
+			Code: 0,
+			Data: QRCodePoll{Code: 86038, Message: "二维码已失效"},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(Options{PassportBaseURL: server.URL})
+	_, done, err := client.PollQRCode(context.Background(), "key")
+	if done {
+		t.Fatal("expected expired QR code to not be done")
+	}
+	if err == nil {
+		t.Fatal("expected explicit expiration error")
+	}
+	if !strings.Contains(err.Error(), "二维码已过期") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestSearchUPVideosSendsSignedWBIQuery(t *testing.T) {
 	var rawQuery string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
