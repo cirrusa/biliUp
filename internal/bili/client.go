@@ -213,7 +213,7 @@ func (c *Client) Nav(ctx context.Context, ck *cookie.Cookie) (UserInfo, error) {
 		return UserInfo{}, err
 	}
 	if !out.Data.IsLogin {
-		return UserInfo{}, errors.New("cookie login failed")
+		return UserInfo{}, errors.New("Cookie 登录校验失败")
 	}
 	return out.Data, nil
 }
@@ -405,7 +405,7 @@ func (c *Client) getJSONWithHeaders(ctx context.Context, endpoint string, ck *co
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("http GET %s failed: %s", endpoint, resp.Status)
+		return fmt.Errorf("HTTP GET 请求失败: %s，状态: %s", endpoint, resp.Status)
 	}
 	return json.NewDecoder(resp.Body).Decode(out)
 }
@@ -438,7 +438,7 @@ func (c *Client) postForm(ctx context.Context, endpoint string, ck *cookie.Cooki
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("http POST %s failed: %s", endpoint, resp.Status)
+		return fmt.Errorf("HTTP POST 请求失败: %s，状态: %s", endpoint, resp.Status)
 	}
 	var out struct {
 		Code    int             `json:"code"`
@@ -468,7 +468,7 @@ func checkCode(code int, msg string) error {
 		return nil
 	}
 	if msg == "" {
-		msg = "unknown error"
+		msg = "未知错误"
 	}
-	return fmt.Errorf("bilibili api code %d: %s", code, msg)
+	return fmt.Errorf("哔哩哔哩接口返回错误，code=%d，message=%s", code, msg)
 }

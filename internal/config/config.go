@@ -151,10 +151,10 @@ func envValue(key string, envFile map[string]string) (string, bool) {
 
 func validate(cfg Config) error {
 	if cfg.Task.NumberOfCoins < 0 || cfg.Task.NumberOfCoins > 5 {
-		return fmt.Errorf("numberOfCoins must be in [0,5], got %d", cfg.Task.NumberOfCoins)
+		return fmt.Errorf("numberOfCoins 必须在 [0,5] 范围内，当前值为 %d", cfg.Task.NumberOfCoins)
 	}
 	if cfg.Task.ProtectedCoins < 0 {
-		return fmt.Errorf("protectedCoins must be >= 0, got %d", cfg.Task.ProtectedCoins)
+		return fmt.Errorf("protectedCoins 必须大于等于 0，当前值为 %d", cfg.Task.ProtectedCoins)
 	}
 	return nil
 }
@@ -175,11 +175,11 @@ func loadDotEnv(path string) (map[string]string, error) {
 		}
 		key, value, ok := strings.Cut(line, "=")
 		if !ok {
-			return nil, fmt.Errorf("%s:%d: expected KEY=value", path, lineNo+1)
+			return nil, fmt.Errorf("%s:%d: 期望格式为 KEY=value", path, lineNo+1)
 		}
 		key = strings.TrimSpace(key)
 		if key == "" {
-			return nil, fmt.Errorf("%s:%d: empty key", path, lineNo+1)
+			return nil, fmt.Errorf("%s:%d: 键不能为空", path, lineNo+1)
 		}
 		values[key] = parseDotEnvValue(strings.TrimSpace(value))
 	}

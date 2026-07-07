@@ -16,16 +16,16 @@ func Parse(raw string) (*Cookie, error) {
 	items := parsePairs(raw)
 	ck := &Cookie{Items: items}
 	if len(items) == 0 {
-		return nil, errors.New("cookie string has no key/value pairs")
+		return nil, errors.New("Cookie 字符串中没有有效的键值对")
 	}
 	if ck.UserID() == "" {
-		return nil, errors.New("cookie missing DedeUserID")
+		return nil, errors.New("Cookie 缺少 DedeUserID")
 	}
 	if ck.SessData() == "" {
-		return nil, errors.New("cookie missing SESSDATA")
+		return nil, errors.New("Cookie 缺少 SESSDATA")
 	}
 	if ck.BiliJct() == "" {
-		return nil, errors.New("cookie missing bili_jct")
+		return nil, errors.New("Cookie 缺少 bili_jct")
 	}
 	return ck, nil
 }

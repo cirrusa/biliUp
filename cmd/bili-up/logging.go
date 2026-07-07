@@ -150,6 +150,6 @@ func closeLogger(closer io.Closer) {
 		return
 	}
 	if err := closer.Close(); err != nil {
-		fmt.Fprintln(os.Stderr, "log close error:", err)
+		fmt.Fprintln(os.Stderr, "关闭日志失败:", err)
 	}
 }

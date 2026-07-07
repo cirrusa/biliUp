@@ -59,7 +59,7 @@ func (s Service) Login(ctx context.Context, showQRCode func(string)) (store.Acco
 		}
 	}
 	if ck == nil {
-		return store.Account{}, errors.New("login timeout")
+		return store.Account{}, errors.New("登录超时")
 	}
 	if err := s.Bili.SetCookie(ctx, ck); err != nil {
 		return store.Account{}, err

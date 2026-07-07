@@ -16,7 +16,7 @@ func TestPrintLoginQRCode(t *testing.T) {
 	printLoginQRCode(url, &out)
 
 	got := out.String()
-	if !strings.Contains(got, "Scan this QR code with Bilibili app:") {
+	if !strings.Contains(got, "请使用哔哩哔哩 App 扫描下方二维码：") {
 		t.Fatalf("output missing scan prompt: %q", got)
 	}
 	if !strings.Contains(got, url) {
@@ -152,7 +152,7 @@ func TestRunLogsReturnedError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), "error:") {
+	if !strings.Contains(string(data), "错误:") {
 		t.Fatalf("log missing returned error: %q", data)
 	}
 }

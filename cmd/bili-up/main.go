@@ -24,7 +24,7 @@ import (
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
+		fmt.Fprintln(os.Stderr, "错误:", err)
 		os.Exit(1)
 	}
 }
@@ -32,7 +32,7 @@ func main() {
 func run(args []string) error {
 	logger, loggerCloser, err := newRuntimeLogger(0, os.Stdout)
 	if err != nil {
-		return fmt.Errorf("init logger: %w", err)
+		return fmt.Errorf("初始化日志失败: %w", err)
 	}
 	defer func() {
 		closeLogger(loggerCloser)
@@ -41,7 +41,7 @@ func run(args []string) error {
 	var runErr error
 	defer func() {
 		if runErr != nil {
-			logger.Printf("error: %v", runErr)
+			logger.Printf("错误: %v", runErr)
 		}
 	}()
 
@@ -57,7 +57,7 @@ func run(args []string) error {
 	}
 	nextLogger, nextCloser, err := newRuntimeLogger(cfg.Logging.RetentionDays, os.Stdout)
 	if err != nil {
-		runErr = fmt.Errorf("init logger: %w", err)
+		runErr = fmt.Errorf("初始化日志失败: %w", err)
 		return runErr
 	}
 	closeLogger(loggerCloser)
@@ -83,7 +83,7 @@ func run(args []string) error {
 		runErr = runAccounts(context.Background(), st)
 	default:
 		printUsage()
-		runErr = fmt.Errorf("unknown command %q", command)
+		runErr = fmt.Errorf("未知命令 %q", command)
 	}
 	return runErr
 }
@@ -109,19 +109,19 @@ func runLogin(ctx context.Context, client *bili.Client, st store.Store) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("login saved uid=%s\n", account.UID)
+	fmt.Printf("登录成功，已保存账号 uid=%s\n", account.UID)
 	return nil
 }
 
 func printLoginQRCode(url string, w io.Writer) {
-	fmt.Fprintln(w, "Scan this QR code with Bilibili app:")
+	fmt.Fprintln(w, "请使用哔哩哔哩 App 扫描下方二维码：")
 	qrterminal.GenerateHalfBlock(url, qrterminal.L, w)
 	fmt.Fprintln(w, url)
 }
 
 func runDaily(ctx context.Context, cfg config.Config, st store.Store, client *bili.Client, logger *log.Logger, args []string) error {
 	fs := flag.NewFlagSet("run", flag.ContinueOnError)
-	dryRun := fs.Bool("dry-run", false, "load accounts without calling bilibili task APIs")
+	dryRun := fs.Bool("dry-run", false, "只加载账号，不调用哔哩哔哩任务接口")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func runDaily(ctx context.Context, cfg config.Config, st store.Store, client *bi
 		if err != nil {
 			return err
 		}
-		fmt.Printf("dry-run: loaded %d account(s)\n", len(accounts))
+		fmt.Printf("演练模式：已加载 %d 个账号\n", len(accounts))
 		return nil
 	}
 	r := tasks.Runner{Bili: client, Store: st, Config: cfg, Logger: logger}
@@ -147,14 +147,14 @@ func runScheduler(cfg config.Config, st store.Store, client *bili.Client, logger
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.Task.TimeoutSeconds*20)*time.Second)
 		defer cancel()
 		if err := runDaily(ctx, cfg, st, client, logger, nil); err != nil {
-			logger.Printf("scheduled run failed: %v", err)
+			logger.Printf("定时任务执行失败: %v", err)
 		}
 	})
 	if err != nil {
 		return err
 	}
 	c.Start()
-	logger.Printf("scheduler started, cron=%q timezone=Asia/Shanghai", cfg.Task.Cron)
+	logger.Printf("定时任务已启动，cron=%q，时区=Asia/Shanghai", cfg.Task.Cron)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
@@ -170,13 +170,13 @@ func runAccounts(ctx context.Context, st store.Store) error {
 		return err
 	}
 	if len(accounts) == 0 {
-		fmt.Println("no accounts")
+		fmt.Println("当前没有账号")
 		return nil
 	}
 	for i, account := range accounts {
-		status := "invalid"
+		status := "无效"
 		if _, err := cookie.Parse(account.Cookie); err == nil {
-			status = "valid"
+			status = "有效"
 		}
 		fmt.Printf("%d\tuid=%s\tname=%s\tcookie=%s\n", i, account.UID, account.Name, status)
 	}
@@ -184,7 +184,7 @@ func runAccounts(ctx context.Context, st store.Store) error {
 }
 
 func printUsage() {
-	fmt.Println("Usage: bili-up <login|run|scheduler|accounts>")
+	fmt.Println("用法: bili-up <login|run|scheduler|accounts>")
 }
 
 type loginAdapter struct {
