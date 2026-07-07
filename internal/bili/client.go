@@ -70,6 +70,31 @@ type UserInfo struct {
 type LevelInfo struct {
 	CurrentLevel int `json:"current_level"`
 	CurrentExp   int `json:"current_exp"`
+	NextExp      int `json:"-"`
+}
+
+func (l *LevelInfo) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		CurrentLevel int `json:"current_level"`
+		CurrentExp   int `json:"current_exp"`
+		NextExp      any `json:"next_exp"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	l.CurrentLevel = raw.CurrentLevel
+	l.CurrentExp = raw.CurrentExp
+	l.NextExp = 0
+	switch value := raw.NextExp.(type) {
+	case float64:
+		l.NextExp = int(value)
+	case string:
+		nextExp, err := strconv.Atoi(value)
+		if err == nil {
+			l.NextExp = nextExp
+		}
+	}
+	return nil
 }
 
 type DailyReward struct {

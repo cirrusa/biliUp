@@ -36,7 +36,7 @@ func TestLoadUsesDefaults(t *testing.T) {
 	if cfg.Task.Cron != "0 15 * * *" {
 		t.Fatalf("cron default = %q", cfg.Task.Cron)
 	}
-	if !cfg.Task.WatchVideo || !cfg.Task.ShareVideo || !cfg.Task.SelectLike {
+	if !cfg.Task.WatchVideo || !cfg.Task.ShareVideo || !cfg.Task.SaveCoinsWhenLv6 || !cfg.Task.SelectLike {
 		t.Fatalf("task boolean defaults not applied: %+v", cfg.Task)
 	}
 	if cfg.Storage.AccountsFile != "config/accounts.json" {

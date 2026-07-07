@@ -52,6 +52,7 @@ func Default() Config {
 			ShareVideo:             true,
 			NumberOfCoins:          5,
 			ProtectedCoins:         0,
+			SaveCoinsWhenLv6:       true,
 			SelectLike:             true,
 			RequestIntervalSeconds: 3,
 			TimeoutSeconds:         30,

@@ -41,6 +41,13 @@ type Runner struct {
 	Logger *log.Logger
 }
 
+const (
+	dailyLoginExp      = 5
+	dailyWatchVideoExp = 5
+	dailyShareVideoExp = 5
+	dailyDonateCoinExp = 10
+)
+
 func (r *Runner) Run(ctx context.Context) error {
 	full, ok := r.Bili.(FullBiliClient)
 	if !ok {
@@ -78,7 +85,8 @@ func (r *Runner) runAccount(ctx context.Context, client FullBiliClient, account 
 	if err != nil {
 		return err
 	}
-	r.logf("登录校验成功: 用户名=%s uid=%s", user.Uname, ck.UserID())
+	r.logf("登录校验成功: 用户名=%s uid=%s，经验+%d", user.Uname, ck.UserID(), dailyLoginExp)
+	r.logUpgradeProgress(user)
 
 	reward, err := client.DailyReward(ctx, ck)
 	if err != nil {
@@ -97,7 +105,7 @@ func (r *Runner) runAccount(ctx context.Context, client FullBiliClient, account 
 			if err := client.WatchVideo(ctx, ck, video); err != nil {
 				r.logf("观看视频失败: %v", err)
 			} else {
-				r.logf("观看任务完成: aid=%d bvid=%s", video.AID, video.BVID)
+				r.logf("观看任务完成: aid=%d bvid=%s，经验+%d", video.AID, video.BVID, dailyWatchVideoExp)
 			}
 		}
 		if !reward.Share && r.Config.Task.ShareVideo {
@@ -105,7 +113,7 @@ func (r *Runner) runAccount(ctx context.Context, client FullBiliClient, account 
 			if err := client.ShareVideo(ctx, ck, video); err != nil {
 				r.logf("分享视频失败: %v", err)
 			} else {
-				r.logf("分享任务完成: aid=%d bvid=%s", video.AID, video.BVID)
+				r.logf("分享任务完成: aid=%d bvid=%s，经验+%d", video.AID, video.BVID, dailyShareVideoExp)
 			}
 		}
 	}
@@ -117,6 +125,11 @@ func (r *Runner) runAccount(ctx context.Context, client FullBiliClient, account 
 }
 
 func (r *Runner) donateCoins(ctx context.Context, client FullBiliClient, ck *cookie.Cookie, signer wbi.Signer) error {
+	if r.Config.Task.NumberOfCoins <= 0 {
+		r.logf("投币任务跳过: 配置目标投币数为 0")
+		return nil
+	}
+
 	exp, err := client.DonateCoinExp(ctx, ck)
 	if err != nil {
 		return err
@@ -125,11 +138,14 @@ func (r *Runner) donateCoins(ctx context.Context, client FullBiliClient, ck *coo
 	if err != nil {
 		return err
 	}
+	already := donatedCoins(exp)
 	need := neededCoins(r.Config.Task.NumberOfCoins, exp, balance, r.Config.Task.ProtectedCoins)
 	if need <= 0 {
+		r.logf("投币任务进度: 今日已获得 %d 点经验（已投 %d/%d 枚），当前硬币余额 %.1f", exp, already, r.Config.Task.NumberOfCoins, balance)
 		r.logf("投币任务跳过: 今日投币已完成或当前硬币余额处于保护阈值")
 		return nil
 	}
+	r.logf("投币任务进度: 今日已获得 %d 点经验（已投 %d/%d 枚），当前硬币余额 %.1f，还需投 %d 枚", exp, already, r.Config.Task.NumberOfCoins, balance, need)
 	success := 0
 	for attempts := 0; attempts < 10 && success < need; attempts++ {
 		video, err := r.pickVideo(ctx, ck, signer)
@@ -144,12 +160,28 @@ func (r *Runner) donateCoins(ctx context.Context, client FullBiliClient, ck *coo
 			continue
 		}
 		success++
+		r.logf("投币成功: aid=%d bvid=%s 标题=%q，经验+%d", video.AID, video.BVID, video.Title, dailyDonateCoinExp)
 		time.Sleep(r.Config.Task.RequestInterval)
 	}
 	if success < need {
 		return fmt.Errorf("投币任务未完成: 成功 %d 个，还需要 %d 个", success, need)
 	}
+	r.logf("投币任务完成: 本次成功投币 %d 枚，经验+%d", success, success*dailyDonateCoinExp)
 	return nil
+}
+
+func (r *Runner) logUpgradeProgress(user bili.UserInfo) {
+	if user.LevelInfo.CurrentLevel >= 6 {
+		r.logf("升级进度: 当前经验 %d，已达到 Lv6", user.LevelInfo.CurrentExp)
+		return
+	}
+	remainingExp, ok := remainingUpgradeExp(user.LevelInfo)
+	if !ok {
+		r.logf("升级进度: 当前等级 lv%d，无法计算下一等级所需经验", user.LevelInfo.CurrentLevel)
+		return
+	}
+	days := estimateUpgradeDays(user, r.Config.Task)
+	r.logf("升级进度: 距离升级到 Lv%d 还需 %d 经验，按当前配置预计还需 %d 天", user.LevelInfo.CurrentLevel+1, remainingExp, days)
 }
 
 func (r *Runner) pickVideo(ctx context.Context, ck *cookie.Cookie, signer wbi.Signer) (bili.Video, error) {
@@ -185,7 +217,7 @@ func neededCoins(targetCoins int, donatedExp int, balance float64, protectedCoin
 	if targetCoins <= 0 {
 		return 0
 	}
-	already := donatedExp / 10
+	already := donatedCoins(donatedExp)
 	need := targetCoins - already
 	if need <= 0 {
 		return 0
@@ -198,6 +230,70 @@ func neededCoins(targetCoins int, donatedExp int, balance float64, protectedCoin
 		return available
 	}
 	return need
+}
+
+func donatedCoins(donatedExp int) int {
+	if donatedExp <= 0 {
+		return 0
+	}
+	return donatedExp / dailyDonateCoinExp
+}
+
+func remainingUpgradeExp(level bili.LevelInfo) (int, bool) {
+	if level.CurrentLevel >= 6 {
+		return 0, false
+	}
+	if level.NextExp <= level.CurrentExp {
+		return 0, false
+	}
+	return level.NextExp - level.CurrentExp, true
+}
+
+func estimateUpgradeDays(user bili.UserInfo, task config.TaskConfig) int {
+	needExp, ok := remainingUpgradeExp(user.LevelInfo)
+	if !ok {
+		return 0
+	}
+
+	baseExp := dailyLoginExp
+	if task.WatchVideo {
+		baseExp += dailyWatchVideoExp
+	}
+	if task.ShareVideo {
+		baseExp += dailyShareVideoExp
+	}
+	if baseExp <= 0 {
+		return 0
+	}
+
+	availableCoins := user.Money - float64(task.ProtectedCoins)
+	sustainableDailyExp := baseExp + dailyDonateCoinExp
+	needDay := 0
+
+	if availableCoins < 0 {
+		needDay = int(float64(needExp)/float64(sustainableDailyExp) + float64(task.ProtectedCoins) - math.Abs(availableCoins))
+	}
+
+	switch task.NumberOfCoins {
+	case 0:
+		needDay = needExp / baseExp
+	case 1:
+		needDay = needExp / sustainableDailyExp
+	default:
+		dailyExpAvailable := baseExp + task.NumberOfCoins*dailyDonateCoinExp
+		needFrontDay := availableCoins / float64(task.NumberOfCoins-1)
+
+		if float64(needExp)/float64(dailyExpAvailable) > needFrontDay {
+			needDay = int(needFrontDay + (float64(needExp)-float64(dailyExpAvailable)*needFrontDay)/float64(sustainableDailyExp))
+		} else {
+			needDay = needExp / dailyExpAvailable
+		}
+	}
+
+	if needDay <= 0 {
+		return 1
+	}
+	return needDay
 }
 
 func shouldDonate(saveCoinsWhenLv6 bool, currentLevel int) bool {

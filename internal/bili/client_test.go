@@ -125,6 +125,23 @@ func TestWatchShareAndAddCoinSendExpectedForms(t *testing.T) {
 	}
 }
 
+func TestLevelInfoUnmarshalParsesNextExp(t *testing.T) {
+	var level LevelInfo
+	if err := json.Unmarshal([]byte(`{"current_level":5,"current_exp":100,"next_exp":200}`), &level); err != nil {
+		t.Fatal(err)
+	}
+	if level.CurrentLevel != 5 || level.CurrentExp != 100 || level.NextExp != 200 {
+		t.Fatalf("unexpected level info: %+v", level)
+	}
+
+	if err := json.Unmarshal([]byte(`{"current_level":6,"current_exp":28800,"next_exp":"--"}`), &level); err != nil {
+		t.Fatal(err)
+	}
+	if level.CurrentLevel != 6 || level.CurrentExp != 28800 || level.NextExp != 0 {
+		t.Fatalf("unexpected lv6 level info: %+v", level)
+	}
+}
+
 func assertForm(t *testing.T, form url.Values, key, want string) {
 	t.Helper()
 	if got := form.Get(key); got != want {
