@@ -4,6 +4,10 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: bili-up
+    deploy:
+      resources:
+        limits:
+          memory: 128M
     restart: unless-stopped
     env_file:
       - .env

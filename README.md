@@ -87,7 +87,7 @@ BILI_UP_LOG_RETENTION_DAYS=90
 - `BILI_UP_ACCOUNTS_FILE`：账号 Cookie 保存文件。
 - `BILI_UP_LOG_RETENTION_DAYS`：按天日志文件保留天数，默认 `90`；设为 `0` 或负数表示不自动清理。
 
-### 3. 构建并启动定时任务
+### 3. 构建并启动定时任务容器
 
 ```powershell
 docker compose up -d --build
@@ -98,6 +98,8 @@ docker compose up -d --build
 ```powershell
 bili-up scheduler
 ```
+
+容器启动后，后续登录、账号检查和手动执行任务都在这个已运行的 `bili-up` 容器内完成。
 
 ### 4. 查看日志
 
@@ -122,22 +124,16 @@ docker compose logs -f
 
 ### 5. 扫码登录
 
-首次使用可以扫码登录：
+首次使用可以在已启动的容器中扫码登录：
 
 ```powershell
-docker compose run --rm bili-up login
+docker exec -it bili-up bili-up login
 ```
 
-终端会显示紧凑二维码，并在下方打印登录 URL 作为兜底。使用 B 站 App 扫码确认后，账号 Cookie 会写入：
+其中 `-it` 用于保持终端交互输出正常。终端会显示紧凑二维码，并在下方打印登录 URL 作为兜底。使用 B 站 App 扫码确认后，账号 Cookie 会写入：
 
 ```text
 config/accounts.json
-```
-
-登录完成后，重新启动定时容器：
-
-```powershell
-docker compose up -d
 ```
 
 如果已经有 B 站 Cookie，也可以直接编辑账号文件：
@@ -161,7 +157,7 @@ notepad .\config\accounts.json
 ### 6. 查看账号
 
 ```powershell
-docker compose run --rm bili-up accounts
+docker exec bili-up bili-up accounts
 ```
 
 输出会显示账号 UID 和 Cookie 字段是否完整。
@@ -171,13 +167,13 @@ docker compose run --rm bili-up accounts
 真实执行每日任务：
 
 ```powershell
-docker compose run --rm bili-up run
+docker exec bili-up bili-up run
 ```
 
 只检查账号读取，不调用 B 站任务接口：
 
 ```powershell
-docker compose run --rm bili-up run --dry-run
+docker exec bili-up bili-up run --dry-run
 ```
 
 注意：真实 `run` 会执行观看、分享和投币，可能消耗硬币。
@@ -226,6 +222,7 @@ Docker 中程序工作目录是 `/app`，所以容器内等价路径是：
 ```
 
 `docker-compose.yml` 会把宿主机 `./config` 挂载到容器 `/app/config`，所以手动编辑 `config/accounts.json` 后容器可以直接读取。
+`scheduler` 每次定时执行时都会重新读取账号文件，因此更新 Cookie 后不需要重启容器。
 
 ### 2. 如何禁止投币？
 

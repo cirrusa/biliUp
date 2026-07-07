@@ -30,3 +30,6 @@ coverage.*
 *.swo
 .DS_Store
 Thumbs.db
+
+# Local contributor instructions
+AGENTS.md
